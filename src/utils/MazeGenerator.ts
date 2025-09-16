@@ -27,4 +27,5 @@
 +    this.maze[this.height - 2][this.width - 1] = 'path'; // Opening in right wall
 +  }
 
-  private carvePassages(x: number, y: number) {
+  private carvePassages(x: number, y
+  }: number) {
