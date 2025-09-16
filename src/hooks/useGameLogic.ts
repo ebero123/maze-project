@@ -4,6 +4,8 @@
     const generator = new MazeGenerator(config.width, config.height);
     const maze = generator.generate();
     
+  }
+  )
 -    const startPos = { x: 1, y: 1 };
 -    const exitCells = generator.findPathCellsAwayFrom(maze, startPos, 10);
 -    const exitPos = exitCells[Math.floor(Math.random() * exitCells.length)];
