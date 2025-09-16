@@ -135,5 +135,5 @@
     
     return false;
   }
-  private carvePassages(x: number, y
-  }: number) {
+  private carvePassages(x: number, y: number) {
+  }
