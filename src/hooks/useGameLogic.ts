@@ -36,3 +36,5 @@ const generateNewMaze = useCallback((level: number) => {
       const trapPos = validTrapPositions.splice(randomIndex, 1)[0];
       traps.push(trapPos);
     }
+}
+)
