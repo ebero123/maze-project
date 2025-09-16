@@ -22,7 +22,7 @@
 
   private addBranchingPaths() {
     // Add additional connections to create more branching
-    const attempts = Math.floor((this.width * this.height) / 20);
+    const attempts = Math.floor((this.width * this.height) / 12);
     
     for (let i = 0; i < attempts; i++) {
       const x = 1 + Math.floor(Math.random() * (this.width - 2));
@@ -33,6 +33,77 @@
         this.maze[y][x] = 'path';
       }
     }
+    
+    // Add more loops and alternative routes
+    this.createAlternativeRoutes();
+  }
+
+  private createAlternativeRoutes() {
+    const attempts = Math.floor((this.width * this.height) / 15);
+    
+    for (let i = 0; i < attempts; i++) {
+      const x = 2 + Math.floor(Math.random() * (this.width - 4));
+      const y = 2 + Math.floor(Math.random() * (this.height - 4));
+      
+      if (this.maze[y][x] === 'wall' && this.wouldCreateAlternativeRoute(x, y)) {
+        this.maze[y][x] = 'path';
+      }
+    }
+  }
+
+  private wouldCreateAlternativeRoute(x: number, y: number): boolean {
+    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    let pathNeighbors = 0;
+    const pathPositions: Position[] = [];
+    
+    for (const [dx, dy] of directions) {
+      const nx = x + dx;
+      const ny = y + dy;
+      
+      if (this.isValidCoordinate(nx, ny) && this.maze[ny][nx] === 'path') {
+        pathNeighbors++;
+        pathPositions.push({ x: nx, y: ny });
+      }
+    }
+    
+    // Create route if it connects 2 or more path segments that aren't already connected
+    if (pathNeighbors >= 2) {
+      // Check if these path segments are already connected
+      return !this.arePositionsConnected(pathPositions[0], pathPositions[1]);
+    }
+    
+    return false;
+  }
+
+  private arePositionsConnected(pos1: Position, pos2: Position): boolean {
+    const visited = new Set<string>();
+    const queue = [pos1];
+    
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const key = `${current.x},${current.y}`;
+      
+      if (visited.has(key)) continue;
+      visited.add(key);
+      
+      if (current.x === pos2.x && current.y === pos2.y) {
+        return true;
+      }
+      
+      const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+      for (const [dx, dy] of directions) {
+        const nx = current.x + dx;
+        const ny = current.y + dy;
+        
+        if (this.isValidCoordinate(nx, ny) && 
+            this.maze[ny][nx] === 'path' && 
+            !visited.has(`${nx},${ny}`)) {
+          queue.push({ x: nx, y: ny });
+        }
+      }
+    }
+    
+    return false;
   }
 
   private wouldCreateUsefulConnection(x: number, y: number): boolean {
@@ -69,20 +140,21 @@
     const validTrapPositions: Position[] = [];
     const occupiedPositions = [startPos, exitPos, ...keys];
     
-    // Find all path cells that aren't occupied
+    // Find all path cells that aren't occupied and have multiple connections
     const pathCells: Position[] = [];
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[0].length; x++) {
         if (maze[y][x] === 'path' && 
-            !occupiedPositions.some(pos => pos.x === x && pos.y === y)) {
+            !occupiedPositions.some(pos => pos.x === x && pos.y === y) &&
+            this.hasMultipleConnections(maze, { x, y })) {
           pathCells.push({ x, y });
         }
       }
     }
     
-    // For each potential trap position, check if all keys remain reachable
+    // For each potential trap position, check if all keys and exit remain reachable
     for (const trapPos of pathCells) {
-      if (this.areAllKeysReachableWithTrap(maze, startPos, keys, trapPos)) {
+      if (this.areAllTargetsReachableWithTrap(maze, startPos, [...keys, exitPos], trapPos)) {
         validTrapPositions.push(trapPos);
       }
     }
@@ -90,14 +162,30 @@
     return validTrapPositions;
   }
 
-  private areAllKeysReachableWithTrap(maze: CellType[][], startPos: Position, keys: Position[], trapPos: Position): boolean {
+  private hasMultipleConnections(maze: CellType[][], pos: Position): boolean {
+    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    let pathConnections = 0;
+    
+    for (const [dx, dy] of directions) {
+      const nx = pos.x + dx;
+      const ny = pos.y + dy;
+      
+      if (this.isValidCoordinate(nx, ny) && maze[ny][nx] === 'path') {
+        pathConnections++;
+      }
+    }
+    
+    // Only allow traps at intersections (3+ connections) or corridor bends (2 connections)
+    return pathConnections >= 2;
+  }
+  private areAllTargetsReachableWithTrap(maze: CellType[][], startPos: Position, targets: Position[], trapPos: Position): boolean {
     // Create a temporary maze with the trap as a wall
     const tempMaze = maze.map(row => [...row]);
     tempMaze[trapPos.y][trapPos.x] = 'wall';
     
-    // Check if all keys are still reachable from start
-    for (const key of keys) {
-      if (!this.isReachable(tempMaze, startPos, key)) {
+    // Check if all targets (keys + exit) are still reachable from start
+    for (const target of targets) {
+      if (!this.isReachable(tempMaze, startPos, target)) {
         return false;
       }
     }

@@ -28,7 +28,7 @@ const generateNewMaze = useCallback((level: number) => {
     }
     
     // Place traps only where alternative paths exist
-    const validTrapPositions = generator.findValidTrapPositions(maze, keys, startPos, exitPos);
+    const validTrapPositions = generator.findValidTrapPositions(maze, [...keys], startPos, exitPos);
     const trapCount = Math.min(config.trapCount, validTrapPositions.length);
     
     for (let i = 0; i < trapCount; i++) {
